@@ -1,0 +1,97 @@
+# profiles/default_policy.yaml
+#
+# Task-type allowlists for the Guardian policy engine.
+# The scorer uses these as a starting point before refining via Ollama.
+#
+# Each profile defines:
+#   expected_syscalls   - calls this task type legitimately makes
+#   allowed_path_prefixes - openat paths that are not flagged
+#   default_action      - what happens for unexpected syscalls
+#                         (alert | block | log)
+
+profiles:
+
+  file_write:
+    description: "Write or create a file (e.g. config, output, report)"
+    expected_syscalls:
+      - openat
+      - write
+      - close
+      - fstat
+      - lseek
+    allowed_path_prefixes:
+      - /tmp/
+      - /var/tmp/
+    default_action: alert
+    socket_action:  block
+    ptrace_action:  block
+
+  file_read:
+    description: "Read and process a file"
+    expected_syscalls:
+      - openat
+      - read
+      - close
+      - fstat
+    allowed_path_prefixes:
+      - /tmp/
+      - /var/tmp/
+      - /home/
+    default_action: alert
+    socket_action:  block
+    ptrace_action:  block
+
+  data_processing:
+    description: "In-memory data transformation, no I/O expected"
+    expected_syscalls:
+      - openat   # may need /proc/self/maps, /dev/urandom
+      - read
+      - close
+      - mmap
+      - brk
+    allowed_path_prefixes:
+      - /proc/self/
+      - /dev/urandom
+    default_action: block
+    socket_action:  block
+    ptrace_action:  block
+
+  network_fetch:
+    description: "Fetch data from a known remote endpoint"
+    expected_syscalls:
+      - socket
+      - connect
+      - send
+      - recv
+      - close
+      - openat
+    allowed_path_prefixes:
+      - /etc/ssl/
+      - /tmp/
+    default_action: alert
+    ptrace_action:  block
+    mount_action:   block
+
+  # Catch-all — used when Ollama can't classify the task
+  unknown:
+    description: "Unknown task type — conservative defaults"
+    expected_syscalls:
+      - openat
+    allowed_path_prefixes:
+      - /tmp/
+    default_action: alert
+    socket_action:  block
+    ptrace_action:  block
+    mount_action:   block
+
+# Syscall score weights (used by scorer.py)
+score_weights:
+  execve:   40
+  socket:   40
+  connect:  60
+  openat:   10
+  ptrace:   100
+  mount:    100
+
+# Score threshold at which the policy engine sends SIGKILL
+block_threshold: 100

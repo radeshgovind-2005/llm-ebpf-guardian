@@ -1,0 +1,52 @@
+{
+  "name": "llm-ebpf-guardian",
+  "dockerFile": "../docker/Dockerfile.dev",
+  "context": "..",
+
+  // eBPF needs host kernel access — these are required, not optional
+  "runArgs": [
+    "--privileged",
+    "--pid=host",
+    "--cap-add=SYS_ADMIN",
+    "--cap-add=BPF",
+    "--cap-add=PERFMON",
+    "-v", "/sys/kernel/btf:/sys/kernel/btf:ro",
+    "-v", "/sys/fs/bpf:/sys/fs/bpf:rw"
+  ],
+
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/app,type=bind"
+  ],
+
+  "workspaceFolder": "/app",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-vscode.cpptools",
+        "ms-vscode.cmake-tools",
+        "github.vscode-github-actions",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/bin/python3",
+        "C_Cpp.default.compilerPath": "/usr/bin/clang",
+        "C_Cpp.default.intelliSenseMode": "linux-clang-x64",
+        "editor.formatOnSave": true,
+        "files.trimTrailingWhitespace": true
+      }
+    }
+  },
+
+  "postCreateCommand": "pip3 install -r requirements.txt",
+
+  // Forward Ollama port so you can run Ollama on host Mac and call it from inside
+  "forwardPorts": [11434],
+  "portsAttributes": {
+    "11434": {
+      "label": "Ollama",
+      "onAutoForward": "silent"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+# ── eBPF userspace ────────────────────────────────────────────────────────────
+libbpf-python>=1.3.0        # loads and attaches BPF programs via libbpf
+pyroute2>=0.7.0             # Linux netlink / process utilities
+
+# ── Ollama client ─────────────────────────────────────────────────────────────
+ollama>=0.2.0               # official Python client for Ollama
+
+# ── Dev / testing ─────────────────────────────────────────────────────────────
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+rich>=13.0.0                # pretty console output for live event stream
+pyyaml>=6.0                 # load profiles/default_policy.yaml
