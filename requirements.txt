@@ -1,0 +1,13 @@
+# ── eBPF userspace ────────────────────────────────────────────────────────────
+# libbpf-python is NOT on PyPI for arm64 — installed via apt in Dockerfile
+# (python3-libbpf or built from source in Phase 2)
+pyroute2>=0.7.0
+
+# ── Ollama client ─────────────────────────────────────────────────────────────
+ollama>=0.2.0
+
+# ── Dev / testing ─────────────────────────────────────────────────────────────
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+rich>=13.0.0
+pyyaml>=6.0
