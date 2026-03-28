@@ -1,33 +1,35 @@
-# llm-ebpf-guardian — development environment
-# Ubuntu 22.04 LTS with full eBPF toolchain + Python + Ollama client
 FROM ubuntu:22.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-# ── System packages ────────────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y \
-    # eBPF compilation
     clang \
     llvm \
     libbpf-dev \
     linux-headers-generic \
-    bpftool \
-    # Python
+    linux-tools-generic \
+    linux-tools-common \
     python3 \
     python3-pip \
     python3-venv \
-    # Utilities
     curl \
     git \
     build-essential \
     pkg-config \
+    libelf-dev \
+    libcap-dev \
+    zlib1g-dev \
+    binutils-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# ── Python deps ────────────────────────────────────────────────────────────────
 WORKDIR /app
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-# ── Default shell into /app ────────────────────────────────────────────────────
-WORKDIR /app
+# Build bpftool from source to match any kernel version
+RUN git clone --depth 1 https://github.com/libbpf/bpftool.git /tmp/bpftool \
+    && cd /tmp/bpftool && git submodule update --init \
+    && cd src && make && make install \
+    && rm -rf /tmp/bpftool
+
 CMD ["/bin/bash"]
