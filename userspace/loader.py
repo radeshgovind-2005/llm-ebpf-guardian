@@ -19,7 +19,6 @@ import sys
 from pathlib import Path
 
 from rich.console import Console
-from rich.table import Table
 
 console = Console()
 
@@ -57,7 +56,7 @@ class GuardianEvent(ctypes.Structure):
 
 # ── BPF loading ───────────────────────────────────────────────────────────────
 
-def load_bpf(target_pid: int):
+def load_bpf(target_pid: int):  # pragma: no cover
     """
     Load guardian.bpf.o and attach tracepoints.
     Returns the BPF object so the caller can keep it alive.
@@ -66,7 +65,7 @@ def load_bpf(target_pid: int):
     as 'attached' and not crash.
     """
     try:
-        import libbpf  # libbpf-python  (pip install libbpf-python)
+        import libbpf  # libbpf-python  (pip install libbpf-python)  # noqa: F401
     except ImportError:
         console.print("[red]libbpf-python not installed. Run: pip install libbpf-python[/red]")
         sys.exit(1)
@@ -114,7 +113,7 @@ def print_event(event: GuardianEvent):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def main():
+def main():  # pragma: no cover
     parser = argparse.ArgumentParser(description="llm-ebpf-guardian loader")
     parser.add_argument("--pid",  type=int, default=0,
                         help="PID to monitor (0 = all processes, for testing)")
@@ -126,7 +125,7 @@ def main():
     console.print(f"Task: [italic]{args.task or '(none)'}[/italic]")
     console.print(f"Monitoring PID: {args.pid or 'ALL (test mode)'}\n")
 
-    bpf = load_bpf(args.pid)
+    _bpf = load_bpf(args.pid)
 
     # Graceful shutdown on Ctrl-C
     def _shutdown(sig, frame):

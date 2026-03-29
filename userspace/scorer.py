@@ -150,7 +150,7 @@ if __name__ == "__main__":
     session = ScoringSession(profile=profile)
 
     test_events = [
-        ("openat",  "/tmp/output.json"),   # allowed
+        ("openat",  "/tmp/output.json"),   # allowed  # nosec B108
         ("openat",  "/etc/passwd"),        # suspicious
         ("socket",  ""),                   # unexpected
         ("connect", ""),                   # unexpected — should breach threshold

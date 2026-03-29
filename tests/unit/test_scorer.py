@@ -4,8 +4,7 @@ tests/unit/test_scorer.py — unit tests for userspace/scorer.py.
 All tests mock ollama.Client; no real Ollama or network calls are made.
 """
 
-import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from scorer import (
     BLOCK_THRESHOLD,
