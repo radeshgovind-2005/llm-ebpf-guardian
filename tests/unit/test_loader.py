@@ -88,12 +88,12 @@ def test_syscall_names_correct_mapping():
 @pytest.mark.parametrize(
     "syscall_id,comm,path",
     [
-        (1, b"python3", b"/usr/bin/python3"),    # execve
-        (2, b"python3", b""),                    # socket
-        (3, b"python3", b""),                    # connect
-        (4, b"python3", b"/tmp/output.json"),    # openat
-        (5, b"python3", b""),                    # ptrace
-        (6, b"python3", b""),                    # mount
+        (1, b"python3", b"/usr/bin/python3"),  # execve
+        (2, b"python3", b""),  # socket
+        (3, b"python3", b""),  # connect
+        (4, b"python3", b"/tmp/output.json"),  # openat
+        (5, b"python3", b""),  # ptrace
+        (6, b"python3", b""),  # mount
     ],
     ids=["execve", "socket", "connect", "openat", "ptrace", "mount"],
 )
@@ -117,12 +117,12 @@ def test_print_event_doesnt_crash_for_each_syscall(syscall_id, comm, path):
 @pytest.mark.parametrize(
     "syscall_id,expected_colour",
     [
-        (5, "red"),     # ptrace
-        (6, "red"),     # mount
+        (5, "red"),  # ptrace
+        (6, "red"),  # mount
         (2, "yellow"),  # socket
         (3, "yellow"),  # connect
-        (1, "cyan"),    # execve
-        (4, "white"),   # openat
+        (1, "cyan"),  # execve
+        (4, "white"),  # openat
     ],
     ids=["ptrace", "mount", "socket", "connect", "execve", "openat"],
 )

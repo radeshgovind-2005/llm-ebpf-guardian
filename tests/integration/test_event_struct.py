@@ -35,17 +35,17 @@ from loader import (
 EXPECTED_TOTAL_SIZE = 184
 
 EXPECTED_OFFSETS = {
-    "timestamp_ns":  0,
-    "pid":           8,
-    "tgid":         12,
-    "uid":          16,
-    "syscall":      20,
-    "comm":         24,
-    "path":         40,
+    "timestamp_ns": 0,
+    "pid": 8,
+    "tgid": 12,
+    "uid": 16,
+    "syscall": 20,
+    "comm": 24,
+    "path": 40,
     "socket_family": 168,
-    "remote_addr":  172,
-    "remote_port":  176,
-    "ret":          180,
+    "remote_addr": 172,
+    "remote_port": 176,
+    "ret": 180,
 }
 
 
@@ -60,14 +60,16 @@ def test_guardian_event_total_size():
 # ── Individual field offsets ──────────────────────────────────────────────────
 
 
-@pytest.mark.parametrize("field,expected_offset", sorted(EXPECTED_OFFSETS.items(), key=lambda x: x[1]))
+@pytest.mark.parametrize(
+    "field,expected_offset", sorted(EXPECTED_OFFSETS.items(), key=lambda x: x[1])
+)
 def test_guardian_event_field_offset(field, expected_offset):
     """Test that each GuardianEvent field sits at the exact byte offset the C compiler would use."""
     # ctypes CField descriptors expose .offset directly (ctypes.offsetof was never in stdlib)
     actual = getattr(GuardianEvent, field).offset
-    assert actual == expected_offset, (
-        f"Field '{field}': expected offset {expected_offset}, got {actual}"
-    )
+    assert (
+        actual == expected_offset
+    ), f"Field '{field}': expected offset {expected_offset}, got {actual}"
 
 
 # ── Constants match guardian.h ────────────────────────────────────────────────
@@ -128,7 +130,7 @@ def test_guardian_event_comm_from_raw_bytes():
     data = bytearray(EXPECTED_TOTAL_SIZE)
     comm_str = b"python3"
     offset = EXPECTED_OFFSETS["comm"]
-    data[offset: offset + len(comm_str)] = comm_str
+    data[offset : offset + len(comm_str)] = comm_str
     event = GuardianEvent.from_buffer_copy(bytes(data))
     # c_char arrays strip the null terminator when accessed as bytes
     assert event.comm == comm_str
@@ -139,7 +141,7 @@ def test_guardian_event_path_from_raw_bytes():
     data = bytearray(EXPECTED_TOTAL_SIZE)
     path_str = b"/tmp/output.json"
     offset = EXPECTED_OFFSETS["path"]
-    data[offset: offset + len(path_str)] = path_str
+    data[offset : offset + len(path_str)] = path_str
     event = GuardianEvent.from_buffer_copy(bytes(data))
     # c_char arrays strip the null terminator when accessed as bytes
     assert event.path == path_str

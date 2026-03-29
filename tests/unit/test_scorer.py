@@ -14,7 +14,6 @@ from scorer import (
     build_profile,
 )
 
-
 # ── build_profile ─────────────────────────────────────────────────────────────
 
 
@@ -190,9 +189,9 @@ def test_score_event_unexpected_syscall_accumulates_score():
     """Test that each unexpected syscall adds its weight to the session score."""
     profile = TaskProfile(task="t", expected_syscalls=[], allowed_paths=[])
     session = ScoringSession(profile=profile)
-    session.score_event("socket")   # +40
+    session.score_event("socket")  # +40
     assert session.score == SCORE_WEIGHTS["socket"]
-    session.score_event("socket")   # +40 again
+    session.score_event("socket")  # +40 again
     assert session.score == SCORE_WEIGHTS["socket"] * 2
 
 
@@ -211,7 +210,7 @@ def test_score_event_block_string_contains_threshold_breached():
     """Test that the BLOCK string for a threshold breach includes 'THRESHOLD BREACHED'."""
     profile = TaskProfile(task="t", expected_syscalls=[], allowed_paths=[])
     session = ScoringSession(profile=profile)
-    session.score_event("connect")   # score=60
+    session.score_event("connect")  # score=60
     result = session.score_event("connect")  # score=120
     assert "THRESHOLD BREACHED" in result
 
@@ -225,9 +224,9 @@ def test_score_accumulates_across_multiple_events():
     session = ScoringSession(profile=profile)
 
     assert session.score == 0
-    session.score_event("socket")    # +40 → 40
+    session.score_event("socket")  # +40 → 40
     assert session.score == 40
-    session.score_event("execve")    # +40 → 80
+    session.score_event("execve")  # +40 → 80
     assert session.score == 80
 
 
@@ -241,7 +240,7 @@ def test_score_not_increased_by_allowed_events():
     session = ScoringSession(profile=profile)
 
     session.score_event("openat", "/tmp/out.json")  # allowed path
-    session.score_event("write")                     # expected syscall
+    session.score_event("write")  # expected syscall
     assert session.score == 0
 
 

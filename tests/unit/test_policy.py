@@ -12,8 +12,21 @@ import yaml
 _POLICY_PATH = Path(__file__).parent.parent.parent / "profiles" / "default_policy.yaml"
 
 REQUIRED_PROFILE_KEYS = {"expected_syscalls", "allowed_path_prefixes", "default_action"}
-REQUIRED_PROFILES = {"file_write", "file_read", "data_processing", "network_fetch", "unknown"}
-REQUIRED_SYSCALLS_IN_WEIGHTS = {"execve", "socket", "connect", "openat", "ptrace", "mount"}
+REQUIRED_PROFILES = {
+    "file_write",
+    "file_read",
+    "data_processing",
+    "network_fetch",
+    "unknown",
+}
+REQUIRED_SYSCALLS_IN_WEIGHTS = {
+    "execve",
+    "socket",
+    "connect",
+    "openat",
+    "ptrace",
+    "mount",
+}
 
 
 @pytest.fixture(scope="module")
@@ -77,7 +90,9 @@ def test_each_profile_expected_syscalls_is_list(policy, profile_name):
     """Test that expected_syscalls in every profile is a YAML sequence (list)."""
     syscalls = policy["profiles"][profile_name]["expected_syscalls"]
     assert isinstance(syscalls, list)
-    assert len(syscalls) > 0, f"Profile '{profile_name}' has an empty expected_syscalls list"
+    assert (
+        len(syscalls) > 0
+    ), f"Profile '{profile_name}' has an empty expected_syscalls list"
 
 
 @pytest.mark.parametrize("profile_name", sorted(REQUIRED_PROFILES))
@@ -91,9 +106,11 @@ def test_each_profile_allowed_path_prefixes_is_list(policy, profile_name):
 def test_each_profile_default_action_is_valid(policy, profile_name):
     """Test that default_action in every profile is one of: alert, block, log."""
     action = policy["profiles"][profile_name]["default_action"]
-    assert action in {"alert", "block", "log"}, (
-        f"Profile '{profile_name}' has unexpected default_action: '{action}'"
-    )
+    assert action in {
+        "alert",
+        "block",
+        "log",
+    }, f"Profile '{profile_name}' has unexpected default_action: '{action}'"
 
 
 # ── score_weights ─────────────────────────────────────────────────────────────

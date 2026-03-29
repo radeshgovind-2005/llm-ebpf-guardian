@@ -51,9 +51,7 @@ def mock_ollama_client(mock_ollama_profile: TaskProfile):
     )
     with patch("ollama.Client") as MockClientClass:
         mock_instance = MagicMock()
-        mock_instance.chat.return_value = {
-            "message": {"content": profile_json}
-        }
+        mock_instance.chat.return_value = {"message": {"content": profile_json}}
         MockClientClass.return_value = mock_instance
         yield mock_instance
 

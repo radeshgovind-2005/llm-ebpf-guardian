@@ -40,21 +40,22 @@ SYSCALL_NAMES = {
 
 class GuardianEvent(ctypes.Structure):
     _fields_ = [
-        ("timestamp_ns",  ctypes.c_uint64),
-        ("pid",           ctypes.c_uint32),
-        ("tgid",          ctypes.c_uint32),
-        ("uid",           ctypes.c_uint32),
-        ("syscall",       ctypes.c_uint32),   # enum syscall_id
-        ("comm",          ctypes.c_char * TASK_COMM_LEN),
-        ("path",          ctypes.c_char * PATH_LEN),
+        ("timestamp_ns", ctypes.c_uint64),
+        ("pid", ctypes.c_uint32),
+        ("tgid", ctypes.c_uint32),
+        ("uid", ctypes.c_uint32),
+        ("syscall", ctypes.c_uint32),  # enum syscall_id
+        ("comm", ctypes.c_char * TASK_COMM_LEN),
+        ("path", ctypes.c_char * PATH_LEN),
         ("socket_family", ctypes.c_uint16),
-        ("remote_addr",   ctypes.c_uint32),
-        ("remote_port",   ctypes.c_uint16),
-        ("ret",           ctypes.c_uint32),
+        ("remote_addr", ctypes.c_uint32),
+        ("remote_port", ctypes.c_uint16),
+        ("ret", ctypes.c_uint32),
     ]
 
 
 # ── BPF loading ───────────────────────────────────────────────────────────────
+
 
 def load_bpf(target_pid: int):  # pragma: no cover
     """
@@ -67,14 +68,18 @@ def load_bpf(target_pid: int):  # pragma: no cover
     try:
         import libbpf  # libbpf-python  (pip install libbpf-python)  # noqa: F401
     except ImportError:
-        console.print("[red]libbpf-python not installed. Run: pip install libbpf-python[/red]")
+        console.print(
+            "[red]libbpf-python not installed. Run: pip install libbpf-python[/red]"
+        )
         sys.exit(1)
 
     bpf_obj_path = Path(__file__).parent.parent / "kernel" / "guardian.bpf.o"
     if not bpf_obj_path.exists():
         console.print(f"[red]Compiled BPF object not found: {bpf_obj_path}[/red]")
-        console.print("[yellow]Compile first:[/yellow] clang -g -O2 -target bpf "
-                      "-c kernel/guardian.bpf.c -o kernel/guardian.bpf.o")
+        console.print(
+            "[yellow]Compile first:[/yellow] clang -g -O2 -target bpf "
+            "-c kernel/guardian.bpf.c -o kernel/guardian.bpf.o"
+        )
         sys.exit(1)
 
     # TODO (Phase 2): replace this stub with real libbpf-python attach calls
@@ -89,6 +94,7 @@ def load_bpf(target_pid: int):  # pragma: no cover
 
 # ── Event display ─────────────────────────────────────────────────────────────
 
+
 def print_event(event: GuardianEvent):
     syscall_name = SYSCALL_NAMES.get(event.syscall, f"unknown({event.syscall})")
     comm = event.comm.decode("utf-8", errors="replace").rstrip("\x00")
@@ -97,9 +103,9 @@ def print_event(event: GuardianEvent):
     # Colour-code by risk
     colour = {
         "ptrace": "red",
-        "mount":  "red",
+        "mount": "red",
         "socket": "yellow",
-        "connect":"yellow",
+        "connect": "yellow",
         "execve": "cyan",
         "openat": "white",
     }.get(syscall_name, "white")
@@ -113,12 +119,21 @@ def print_event(event: GuardianEvent):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+
 def main():  # pragma: no cover
     parser = argparse.ArgumentParser(description="llm-ebpf-guardian loader")
-    parser.add_argument("--pid",  type=int, default=0,
-                        help="PID to monitor (0 = all processes, for testing)")
-    parser.add_argument("--task", type=str, default="",
-                        help="Original LLM task prompt (passed to scorer)")
+    parser.add_argument(
+        "--pid",
+        type=int,
+        default=0,
+        help="PID to monitor (0 = all processes, for testing)",
+    )
+    parser.add_argument(
+        "--task",
+        type=str,
+        default="",
+        help="Original LLM task prompt (passed to scorer)",
+    )
     args = parser.parse_args()
 
     console.rule("[bold]llm-ebpf-guardian[/bold]")
@@ -142,11 +157,12 @@ def main():  # pragma: no cover
 
     # Stub: simulate a few events so you can test the display code
     import time
+
     demo_events = [
         (4, b"python3", b"/tmp/output.json"),
         (2, b"python3", b""),
         (3, b"python3", b""),
-        (5, b"python3", b""),   # ptrace — should be red
+        (5, b"python3", b""),  # ptrace — should be red
     ]
     for syscall_id, comm, path in demo_events:
         e = GuardianEvent()
