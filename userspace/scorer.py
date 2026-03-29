@@ -24,32 +24,34 @@ import ollama
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-OLLAMA_HOST  = "http://host.docker.internal:11434"
-OLLAMA_MODEL = "llama3.2"   # swap for any model you have pulled
+OLLAMA_HOST = "http://host.docker.internal:11434"
+OLLAMA_MODEL = "llama3.2"  # swap for any model you have pulled
 
 # Anomaly score weights — tuned for a conservative security posture.
 # Increase a weight to make Guardian more aggressive about blocking.
 SCORE_WEIGHTS = {
-    "execve":   40,
-    "socket":   40,
-    "connect":  60,
-    "openat":   10,   # only unexpected paths get scored
-    "ptrace":  100,   # always maximum — no legitimate use
-    "mount":   100,   # always maximum
+    "execve": 40,
+    "socket": 40,
+    "connect": 60,
+    "openat": 10,  # only unexpected paths get scored
+    "ptrace": 100,  # always maximum — no legitimate use
+    "mount": 100,  # always maximum
 }
 
-BLOCK_THRESHOLD = 100   # score at which policy engine triggers SIGKILL
+BLOCK_THRESHOLD = 100  # score at which policy engine triggers SIGKILL
 
 
 # ── Task profile ──────────────────────────────────────────────────────────────
 
+
 @dataclass
 class TaskProfile:
     """Expected syscall behaviour derived from the LLM task prompt."""
-    task:             str
-    expected_syscalls: list[str]  = field(default_factory=list)
-    allowed_paths:     list[str]  = field(default_factory=list)  # openat whitelist
-    rationale:         str        = ""
+
+    task: str
+    expected_syscalls: list[str] = field(default_factory=list)
+    allowed_paths: list[str] = field(default_factory=list)  # openat whitelist
+    rationale: str = ""
 
 
 def build_profile(task: str) -> TaskProfile:
@@ -98,11 +100,12 @@ Respond with JSON only, no explanation:
 
 # ── Scoring ───────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class ScoringSession:
-    profile:       TaskProfile
-    score:         int = 0
-    event_log:     list = field(default_factory=list)
+    profile: TaskProfile
+    score: int = 0
+    event_log: list = field(default_factory=list)
 
     def score_event(self, syscall_name: str, path: str = "") -> Optional[str]:
         """
@@ -150,11 +153,11 @@ if __name__ == "__main__":
     session = ScoringSession(profile=profile)
 
     test_events = [
-        ("openat",  "/tmp/output.json"),   # allowed
-        ("openat",  "/etc/passwd"),        # suspicious
-        ("socket",  ""),                   # unexpected
-        ("connect", ""),                   # unexpected — should breach threshold
-        ("ptrace",  ""),                   # always blocked
+        ("openat", "/tmp/output.json"),  # allowed  # nosec B108
+        ("openat", "/etc/passwd"),  # suspicious
+        ("socket", ""),  # unexpected
+        ("connect", ""),  # unexpected — should breach threshold
+        ("ptrace", ""),  # always blocked
     ]
 
     print("Scoring test events:")

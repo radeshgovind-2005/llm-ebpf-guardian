@@ -31,3 +31,24 @@ verify: $(BPF_OBJ)
 
 clean:
 	rm -f kernel/guardian.bpf.o kernel/vmlinux.h
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+
+.PHONY: test test-unit test-integration lint coverage
+
+test:
+	pytest tests/ -v
+
+test-unit:
+	pytest tests/unit/ -v
+
+test-integration:
+	pytest tests/integration/ -v
+
+lint:
+	ruff check userspace/ tests/
+	black --check userspace/ tests/
+
+coverage:
+	pytest tests/ --cov=userspace --cov-report=html --cov-report=term
+	@echo "HTML coverage report: htmlcov/index.html"

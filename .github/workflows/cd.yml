@@ -1,0 +1,115 @@
+name: CD
+
+# Runs only when the full CI workflow completes successfully on main.
+# For tag pushes, also publishes guardian.bpf.o as a GitHub release asset.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy-summary:
+    name: Build & Publish Summary
+    runs-on: ubuntu-latest
+    # Only run when CI passed
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    permissions:
+      contents: write        # needed for release asset upload
+      actions: read          # needed to download artifacts from CI run
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      # ── Download the BPF object built by CI ───────────────────────────────
+      - name: Download guardian.bpf.o artifact from CI run
+        uses: actions/download-artifact@v4
+        with:
+          name: guardian-bpf-object
+          path: kernel/
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true   # artifact may be absent if bpf-compile was skipped
+
+      # ── Re-run tests to collect results for summary ────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pytest pytest-asyncio pytest-cov rich pyyaml ollama
+
+      - name: Run full test suite (for summary metrics)
+        id: tests
+        run: |
+          pytest tests/ -v \
+            --cov=userspace \
+            --cov-report=term-missing \
+            --tb=short \
+            -q 2>&1 | tee test_output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+        continue-on-error: true
+
+      - name: Extract coverage percentage
+        id: coverage
+        run: |
+          COVERAGE=$(grep -oP 'TOTAL\s+\d+\s+\d+\s+\K\d+(?=%)' test_output.txt || echo "N/A")
+          echo "pct=${COVERAGE}" >> "$GITHUB_OUTPUT"
+
+      # ── Post job summary ──────────────────────────────────────────────────
+      - name: Write job summary
+        run: |
+          BPF_STATUS="✅ compiled"
+          if [ ! -f kernel/guardian.bpf.o ]; then
+            BPF_STATUS="⚠️ not available (BTF unavailable on runner)"
+          fi
+
+          TEST_ICON="✅"
+          if [ "${{ steps.tests.outputs.exit_code }}" != "0" ]; then
+            TEST_ICON="❌"
+          fi
+
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          # llm-ebpf-guardian Deploy Summary
+
+          | Item | Status |
+          |------|--------|
+          | Commit | \`${{ github.event.workflow_run.head_sha }}\` |
+          | CI Workflow | ${{ github.event.workflow_run.html_url }} |
+          | Test suite | ${TEST_ICON} (exit ${{ steps.tests.outputs.exit_code }}) |
+          | Coverage | ${{ steps.coverage.outputs.pct }}% |
+          | BPF compile | ${BPF_STATUS} |
+
+          <details>
+          <summary>Test output</summary>
+
+          \`\`\`
+          $(tail -50 test_output.txt)
+          \`\`\`
+          </details>
+          EOF
+
+      # ── Publish release asset on tag push ────────────────────────────────
+      - name: Publish guardian.bpf.o as release asset
+        if: startsWith(github.event.workflow_run.head_branch, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.workflow_run.head_branch }}
+          files: kernel/guardian.bpf.o
+          fail_on_unmatched_files: false
+          body: |
+            ## llm-ebpf-guardian ${{ github.event.workflow_run.head_branch }}
+
+            ### Assets
+            - `guardian.bpf.o` — compiled eBPF probe object (attach with `loader.py`)
+
+            ### Coverage
+            ${{ steps.coverage.outputs.pct }}% line coverage
+
+            Auto-published by CD workflow after CI passed on main.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

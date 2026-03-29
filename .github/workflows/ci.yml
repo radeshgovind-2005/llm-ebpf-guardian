@@ -1,0 +1,150 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # ── Lint ──────────────────────────────────────────────────────────────────
+  lint:
+    name: Lint (ruff + black)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install linters
+        run: pip install ruff black
+
+      - name: ruff check
+        run: ruff check userspace/ tests/
+
+      - name: black format check
+        run: black --check userspace/ tests/
+
+  # ── Unit tests ────────────────────────────────────────────────────────────
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pytest pytest-asyncio pytest-cov rich pyyaml ollama
+
+      - name: Run unit tests with coverage
+        run: |
+          pytest tests/unit/ -v \
+            --cov=userspace \
+            --cov-report=xml \
+            --cov-report=term \
+            --cov-fail-under=80
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          fail_ci_if_error: false
+
+  # ── Integration tests ─────────────────────────────────────────────────────
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pytest pytest-asyncio pytest-cov rich pyyaml ollama
+
+      - name: Run integration tests
+        run: pytest tests/integration/ -v
+
+  # ── BPF compile ───────────────────────────────────────────────────────────
+  bpf-compile:
+    name: BPF Compile
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install BPF toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            clang \
+            llvm \
+            libbpf-dev \
+            linux-headers-$(uname -r) \
+            linux-tools-$(uname -r) \
+            linux-tools-generic \
+            || true
+
+      - name: Generate vmlinux.h (skip gracefully if BTF unavailable)
+        run: |
+          if [ -f /sys/kernel/btf/vmlinux ]; then
+            echo "BTF available — generating vmlinux.h"
+            BPFTOOL=$(find /usr/lib /usr/sbin /usr/local/sbin -name bpftool 2>/dev/null | head -1)
+            if [ -z "$BPFTOOL" ]; then
+              echo "bpftool not found at standard paths, installing linux-tools..."
+              sudo apt-get install -y linux-tools-common linux-tools-generic 2>/dev/null || true
+              BPFTOOL=$(find /usr/lib -name bpftool 2>/dev/null | head -1)
+            fi
+            if [ -z "$BPFTOOL" ]; then
+              echo "bpftool unavailable — skipping vmlinux.h generation"
+            else
+              $BPFTOOL btf dump file /sys/kernel/btf/vmlinux format c > kernel/vmlinux.h
+              echo "vmlinux.h generated ($(wc -l < kernel/vmlinux.h) lines)"
+            fi
+          else
+            echo "No BTF (/sys/kernel/btf/vmlinux not found) — skipping"
+          fi
+
+      - name: Compile eBPF probe
+        run: make probe
+
+      - name: Upload guardian.bpf.o artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: guardian-bpf-object
+          path: kernel/guardian.bpf.o
+          if-no-files-found: warn
+
+  # ── Security scan ─────────────────────────────────────────────────────────
+  security:
+    name: Security Scan (bandit)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install bandit
+        run: pip install bandit
+
+      - name: Run bandit (medium severity and above)
+        run: bandit -r userspace/ -ll
